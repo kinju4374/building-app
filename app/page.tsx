@@ -1,5 +1,6 @@
 'use client';
 import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -10,6 +11,9 @@ export default function Home() {
       <button onClick={() => signOut({ callbackUrl: '/login' })} className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
         Sign out
       </button>
+      <div className="mt-4">
+        <Link href="/members" className="text-blue-600 underline">Manage members</Link>
+      </div>
     </div>
   );
 }
