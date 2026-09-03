@@ -14,6 +14,10 @@ export default function Home() {
       <div className="mt-4">
         <Link href="/members" className="text-blue-600 underline">Manage members</Link>
       </div>
+      <div className="mt-4">
+        <Link href="/maintenance" className="text-blue-600 underline">Maintenance</Link>
+      </div>
+      
     </div>
   );
 }
