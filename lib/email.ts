@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { generateReceiptPdf } from './receiptPDF';
+
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -38,6 +40,7 @@ export async function sendMaintenanceEmail({
   const safeFlat = escapeHtml(flatNumber);
   const formattedDate = new Date(paidDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   const transporter = getTransporter();
+  
 
   const html = `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 0;">
@@ -93,10 +96,27 @@ export async function sendMaintenanceEmail({
 </table>
   `;
 
+   const pdfBuffer = await generateReceiptPdf({
+    buildingName,
+    memberName,
+    flatNumber,
+    month,
+    year,
+    amount,
+    paidDate,
+  });
+
   await transporter.sendMail({
     from: `"${process.env.BUILDING_NAME || 'Building App'}" <${process.env.GMAIL_USER}>`,
     to,
     subject: `Maintenance receipt — ${month} ${year}`,
     html,
+    attachments: [
+      {
+        filename: `Receipt-${month}-${year}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      },
+    ],
   });
 }
