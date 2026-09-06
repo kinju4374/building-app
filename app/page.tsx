@@ -1,23 +1,24 @@
 'use client';
-import { useSession, signOut } from 'next-auth/react';
-import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 export default function Home() {
   const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+  const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
 
   return (
-    <div className="p-8">
-      <p>Logged in as: {session?.user?.name} ({(session?.user as any)?.role})</p>
-      <button onClick={() => signOut({ callbackUrl: '/login' })} className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
-        Sign out
-      </button>
-      <div className="mt-4">
-        <Link href="/members" className="text-blue-600 underline">Manage members</Link>
+    <div className="p-5 max-w-lg mx-auto">
+      <p className="text-sm text-[var(--muted)] mb-1">Welcome back</p>
+      <h1 className="text-2xl font-semibold mb-6">{session?.user?.name}</h1>
+
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] px-4 py-3.5 inline-flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+        <span className="text-sm">{roleLabel}</span>
       </div>
-      <div className="mt-4">
-        <Link href="/maintenance" className="text-blue-600 underline">Maintenance</Link>
-      </div>
-      
+
+      <p className="text-sm text-[var(--muted)] mt-8">
+        Use the tabs below to manage members, record maintenance, and track expenses.
+      </p>
     </div>
   );
 }
