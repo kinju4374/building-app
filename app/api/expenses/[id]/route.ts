@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSheetsClient } from '@/lib/googleSheets';
 import { auth } from '@/auth';
+import { logAudit } from '@/lib/audit';
 
 const SHEET_NAME = 'Expenses';
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -60,6 +61,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       },
     });
 
+    await logAudit({
+      user: session.user?.name || 'Unknown',
+      role: (session.user as any)?.role || 'unknown',
+      action: 'Edited expense',
+      details: `${data.description} — ₹${data.amount}`,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to update expense:', error);
@@ -77,11 +85,24 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const rowNumber = await findRowNumberById(sheets, id);
     if (!rowNumber) return NextResponse.json({ success: false, error: 'Expense not found' }, { status: 404 });
 
+    const existingRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A${rowNumber}:H${rowNumber}`,
+    });
+    const existing = existingRes.data.values?.[0] || [];
+
     await sheets.spreadsheets.values.update({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!H${rowNumber}`,
       valueInputOption: 'RAW',
       requestBody: { values: [['inactive']] },
+    });
+
+    await logAudit({
+      user: session.user?.name || 'Unknown',
+      role: (session.user as any)?.role || 'unknown',
+      action: 'Removed expense',
+      details: `${existing[3] || 'Unknown'} — ₹${existing[4] || ''}`,
     });
 
     return NextResponse.json({ success: true });

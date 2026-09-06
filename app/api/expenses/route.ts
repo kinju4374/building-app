@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { getSheetsClient } from '@/lib/googleSheets';
 import { auth } from '@/auth';
+import { logAudit } from '@/lib/audit';
 
 const SHEET_NAME = 'Expenses';
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -75,6 +76,13 @@ export async function POST(request: Request) {
           data.amount, sanitize(data.paidTo), addedBy, 'active',
         ]],
       },
+    });
+
+    await logAudit({
+      user: addedBy,
+      role: (session.user as any)?.role || 'unknown',
+      action: 'Added expense',
+      details: `${data.description} — ₹${data.amount} (${data.category})`,
     });
 
     return NextResponse.json({ success: true, id });

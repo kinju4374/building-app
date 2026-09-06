@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { getSheetsClient } from '@/lib/googleSheets';
 import { auth } from '@/auth';
+import { logAudit } from '@/lib/audit';
 
 const SHEET_NAME = 'Members';
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -21,7 +22,6 @@ const memberSchema = z.object({
 });
 
 function sanitize(value: string): string {
-  // Prevents formula injection if the sheet is ever opened directly in the UI
   return /^[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
@@ -88,6 +88,13 @@ export async function POST(request: Request) {
           'active',
         ]],
       },
+    });
+
+    await logAudit({
+      user: session.user?.name || 'Unknown',
+      role: (session.user as any)?.role || 'unknown',
+      action: 'Added member',
+      details: `${data.name} — Flat ${data.flatNumber}`,
     });
 
     return NextResponse.json({ success: true, id });

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { getSheetsClient } from '@/lib/googleSheets';
 import { sendMaintenanceEmail } from '@/lib/email';
 import { auth } from '@/auth';
+import { logAudit } from '@/lib/audit';
 
 const SHEET_NAME = 'MaintenanceRecords';
 const MEMBERS_SHEET = 'Members';
@@ -73,7 +74,6 @@ export async function POST(request: Request) {
     const flatNumber = memberRow[2];
     const memberEmail = memberRow[5];
 
-    // Block accidental duplicate entries for the same member + month + year
     const existingRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A2:D`,
@@ -90,7 +90,6 @@ export async function POST(request: Request) {
 
     const id = randomUUID();
 
-    // Save the record BEFORE attempting email — so a record is never lost even if sending fails
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A:G`,
@@ -129,6 +128,13 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Record saved but email failed:', emailError);
     }
+
+    await logAudit({
+      user: session.user?.name || 'Unknown',
+      role: (session.user as any)?.role || 'unknown',
+      action: 'Recorded maintenance',
+      details: `${memberName} (Flat ${flatNumber}) — ${MONTH_NAMES[data.month - 1]} ${data.year} — ₹${data.amount} (${emailSent ? 'emailed' : 'email failed'})`,
+    });
 
     return NextResponse.json({ success: true, id, emailSent });
   } catch (error) {
