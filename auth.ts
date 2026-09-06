@@ -18,6 +18,7 @@ function getAllowedUsers(): AppUser[] {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   session: { strategy: 'jwt', maxAge: 8 * 60 * 60 }, // 8 hour sessions
   pages: { signIn: '/login' },
   providers: [
